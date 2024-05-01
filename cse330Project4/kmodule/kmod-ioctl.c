@@ -101,6 +101,46 @@ static long kmod_ioctl(struct file *f, unsigned int cmd, unsigned long arg) {
     return ret;
 }
 
+static int perform_block_operation(int op, char *user_buffer, int size, char *kernel_buffer, int offset = 0) {
+    int ret;
+    struct page *page;
+
+    /* Set bio parameters */
+    bio_reset(bdevice_bio);
+    bdevice_bio->bi_iter.bi_sector = offset >> 9; // Convert offset to sector
+    bdevice_bio->bi_opf = op;
+
+    /* Add pages to bio */
+    while (size > 0) {
+        int bytes = min(size, PAGE_SIZE);
+
+        if (kernel_buffer) {
+            page = vmalloc_to_page(kernel_buffer); 
+        } else {
+            page = virt_to_page(user_buffer); 
+        }
+        
+        if (!bio_add_page(bdevice_bio, page, bytes, offset_in_page(user_buffer))) {
+            printk(KERN_ERR "Failed to add page to bio\n");
+            return -EFAULT;
+        }
+
+        size -= bytes;
+        user_buffer += bytes;
+        if (kernel_buffer) kernel_buffer += bytes;
+    }
+
+    /* Submit the bio and wait for completion */
+    ret = submit_bio_wait(bdevice_bio);
+    if (ret < 0) {
+        printk(KERN_ERR "Failed to submit bio: %d\n", ret);
+        return ret;
+    }
+
+    return ret;
+}
+
+
 static int kmod_open(struct inode* inode, struct file* file) {
     printk("Opened kmod. \n");
     return 0;
