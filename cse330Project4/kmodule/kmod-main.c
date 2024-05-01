@@ -36,7 +36,7 @@ void kmod_ioctl_teardown(void);
 
 static bool open_usb_disk(void) {
     /* Open the USB storage disk)*/
-     bdevice = blkdev_get_by_path(device, FMODE_READ | FMODE_WRITE, NULL);
+     bdevice = blkdev_get_by_path(device, (fmode_t)(FMODE_READ | FMODE_WRITE), NULL);
     if (IS_ERR(bdevice)) {
         printk(KERN_ERR "Failed to open device %s\n", device);
         return false;
@@ -44,7 +44,7 @@ static bool open_usb_disk(void) {
     bdevice_bio = bio_alloc(bdevice, 1, REQ_OP_READ, GFP_NOIO);
     if (!bdevice_bio) {
         printk(KERN_ERR "Failed to allocate bio\n");
-        blkdev_put(bdevice, FMODE_READ | FMODE_WRITE);
+        blkdev_put(bdevice, (fmode_t)(FMODE_READ | FMODE_WRITE));
         return false;
     }
     return true;
@@ -56,7 +56,7 @@ static void close_usb_disk(void) {
         bio_put(bdevice_bio);
     }
     if (bdevice) {
-        blkdev_put(bdevice, FMODE_READ | FMODE_WRITE);
+        blkdev_put(bdevice, (fmode_t)(FMODE_READ | FMODE_WRITE));
     }
 }
 
@@ -70,7 +70,7 @@ static int __init kmod_init(void) {
 static void __exit kmod_fini(void) {
     close_usb_disk();
     kmod_ioctl_teardown();
-    printk("Goodbye, World!\n");
+    printk("Goodbye from CSE330!\n");
 }
 
 module_init(kmod_init);
