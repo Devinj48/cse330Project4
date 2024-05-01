@@ -31,30 +31,36 @@ module_param(device, charp, S_IRUGO);
 static struct block_device*     bdevice = NULL;
 static struct bio*              bdevice_bio;
 
-bool kmod_ioctl_init(void);
+bool kmod_ioctl_init(struct block_device *bdevice);
 void kmod_ioctl_teardown(void);
 
-static bool open_usb_disk(void) {
+static bool open_usb_disk(void) 
+{
     /* Open the USB storage disk)*/
-     bdevice = blkdev_get_by_path(device, (fmode_t)(FMODE_READ | FMODE_WRITE), NULL);
+    printk("device: %s\n", device);
+     bdevice = blkdev_get_by_path(device, (fmode_t)(FMODE_READ | FMODE_WRITE), NULL, NULL);
     if (IS_ERR(bdevice)) {
         printk(KERN_ERR "Failed to open device %s\n", device);
         return false;
     }
-    bdevice_bio = bio_alloc(bdevice, 1, REQ_OP_READ, GFP_NOIO);
+   #if 0 
+   bdevice_bio = bio_alloc(bdevice, 1, REQ_OP_READ, GFP_NOIO);
     if (!bdevice_bio) {
         printk(KERN_ERR "Failed to allocate bio\n");
         blkdev_put(bdevice, (fmode_t)(FMODE_READ | FMODE_WRITE));
         return false;
     }
+    #endif
     return true;
 }
 
 static void close_usb_disk(void) {
     /* Close the USB storage disk (Hint: use blkdev_put(..);)*/
+    #if 0
     if (bdevice_bio) {
         bio_put(bdevice_bio);
     }
+    #endif
     if (bdevice) {
         blkdev_put(bdevice, (fmode_t)(FMODE_READ | FMODE_WRITE));
     }
@@ -63,7 +69,7 @@ static void close_usb_disk(void) {
 static int __init kmod_init(void) {
     printk("Hello World!\n");
     open_usb_disk();
-    kmod_ioctl_init();
+    kmod_ioctl_init(bdevice);
     return 0;
 }
 
